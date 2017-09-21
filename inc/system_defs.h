@@ -42,6 +42,8 @@ typedef struct			// Using to access individual bits/pins of a register/port
 #define UART1_TX_PIN 	GPIO_Pin_9
 #define UART1_RX_PIN 	GPIO_Pin_10
 #define USER_BUTTON_PIN	GPIO_Pin_13
+#define OK_LED_PIN		GPIO_Pin_0
+#define ERROR_LED_PIN	GPIO_Pin_1
 
 #define SYSTEM_CLOCK 84000000
 
@@ -51,5 +53,6 @@ volatile uint32_t flag_register;
 #define flag_rx1_enable REGISTER_BIT(flag_register, 1)
 
 void delay_ms(uint32_t delay_time);
+uint32_t calculate_checksum(uint8_t *data, uint32_t data_len);
 
 #endif /* SYSTEM_DEFS_H_ */

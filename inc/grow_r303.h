@@ -42,7 +42,13 @@
 
 #define GROW_R303_INSTR_RD_TMPLT_NO		0x1D
 
+#define GROW_R303_CHAR_BUF_1			0x01
+#define GROW_R303_CHAR_BUF_2			0x02
+
 #define SIZEOF_GEN_IMG_CMD				12		// 12 Bytes
+#define SIZEOF_GEN_CHAR_CMD				13
+#define SIZEOF_GEN_TMPLT_CMD			12
+#define SIZEOF_SAVE_TMPLT_CMD			15
 
 typedef enum{
 	ERR_OK = 0,
@@ -71,5 +77,8 @@ typedef struct{
 }__attribute__((packed, aligned(1))) grow_r303_instr_t;
 
 err_t gen_finger_img();
+err_t gen_char_file(uint8_t char_buffer_num);
+err_t gen_tmplt_file();
+err_t save_tmplt_file(uint8_t char_buffer_num, uint8_t tmplt_id);
 
 #endif /* GROW_R303_H_ */

@@ -29,11 +29,13 @@ void configure_system_clock(void)
 
 void SysTick_Handler(void)
 {
+	static last_tick_count;
 	sys_tick++;
 
-	if(current_system_state == STATE_ENROLL_USER)
+	if((current_system_state == STATE_ENROLL_USER) && (sys_tick - last_tick_count == 1000))
 	{
-
+		last_tick_count = sys_tick;
+		GPIO_ToggleBits(GPIOA, BEAT_LED_PIN);
 	}
 
 	ticks--;
@@ -78,6 +80,24 @@ void init_port_pins()
 
 	GPIO_Init(GPIOA, &gpio_x);
 
+	/* Configure for OK LED	*/
+	gpio_x.GPIO_Pin = OK_LED_PIN;
+	gpio_x.GPIO_Mode = GPIO_Mode_OUT;
+	gpio_x.GPIO_OType = GPIO_OType_PP;
+	gpio_x.GPIO_PuPd = GPIO_PuPd_UP;
+	gpio_x.GPIO_Speed = GPIO_Low_Speed;
+
+	GPIO_Init(GPIOA, &gpio_x);
+
+	/* Configure for ERROR LED	*/
+	gpio_x.GPIO_Pin = ERROR_LED_PIN;
+	gpio_x.GPIO_Mode = GPIO_Mode_OUT;
+	gpio_x.GPIO_OType = GPIO_OType_PP;
+	gpio_x.GPIO_PuPd = GPIO_PuPd_UP;
+	gpio_x.GPIO_Speed = GPIO_Low_Speed;
+
+	GPIO_Init(GPIOA, &gpio_x);
+
 	/* Configure for USER BUTTON	*/
 	gpio_x.GPIO_Pin = USER_BUTTON_PIN;
 	gpio_x.GPIO_Mode = GPIO_Mode_IN;
@@ -114,12 +134,17 @@ void init_port_pins()
 
 int main(void)
 {
+	uint32_t tmplt_num = 1;
+
 	configure_system_clock();
 	init_uart();
 	init_port_pins();
 	init_sys();
 
 	GPIO_ResetBits(GPIOA, BEAT_LED_PIN);
+	GPIO_ResetBits(GPIOA, OK_LED_PIN);
+	GPIO_ResetBits(GPIOA, ERROR_LED_PIN);
+
 	delay_ms(1000);
 
 	while(1)
@@ -127,9 +152,39 @@ int main(void)
 		if(GPIO_ReadInputDataBit(GPIOC, USER_BUTTON_PIN) == BUTTON_PRESSED)
 		{
 			current_system_state = STATE_ENROLL_USER;
-			if(gen_finger_img() == ERR_OK)
-				GPIO_SetBits(GPIOA, BEAT_LED_PIN);
-			else GPIO_ResetBits(GPIOA, BEAT_LED_PIN);
+
+			while(current_system_state == STATE_ENROLL_USER)
+			{
+				for(uint32_t z = 0; z < 2; z++)			// Capture finger images twice
+				{
+					while(gen_finger_img() != ERR_OK);
+					GPIO_SetBits(GPIOA, OK_LED_PIN);
+
+					if(gen_char_file(z+1) != ERR_OK)
+					{
+						GPIO_SetBits(GPIOA, ERROR_LED_PIN);
+						break;
+					}
+
+					while(gen_finger_img() == ERR_OK);	// Wait for the finger to be lifted
+					GPIO_ResetBits(GPIOA, OK_LED_PIN);
+				}
+
+				if(gen_tmplt_file() == ERR_OK)
+				{
+					if(save_tmplt_file(GROW_R303_CHAR_BUF_1, tmplt_num) == ERR_OK)
+					{
+						GPIO_SetBits(GPIOA, OK_LED_PIN);
+						current_system_state = STATE_SYS_LOCKED;
+					}
+				}
+				else
+				{
+					current_system_state = STATE_SYS_LOCKED;
+					GPIO_ResetBits(GPIOA, OK_LED_PIN);
+				}
+
+			}
 		}
 	}
 }
