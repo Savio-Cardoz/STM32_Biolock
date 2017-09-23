@@ -20,6 +20,7 @@ volatile uint32_t ticks, sys_tick;
 volatile rx_buffer_config_t rx_config;
 uint8_t rx_buffer[50];
 volatile system_state current_system_state;
+uint8_t start_page = 0, page_num = 0;
 
 
 void configure_system_clock(void)
@@ -29,10 +30,10 @@ void configure_system_clock(void)
 
 void SysTick_Handler(void)
 {
-	static last_tick_count;
+	static uint32_t last_tick_count;
 	sys_tick++;
 
-	if((current_system_state == STATE_ENROLL_USER) && (sys_tick - last_tick_count == 1000))
+	if((current_system_state == STATE_ENROLL_USER) && (sys_tick - last_tick_count > 1000))
 	{
 		last_tick_count = sys_tick;
 		GPIO_ToggleBits(GPIOA, BEAT_LED_PIN);
@@ -135,6 +136,7 @@ void init_port_pins()
 int main(void)
 {
 	uint32_t tmplt_num = 1;
+	uint8_t match_id;
 
 	configure_system_clock();
 	init_uart();
@@ -149,6 +151,34 @@ int main(void)
 
 	while(1)
 	{
+
+		/* Authenticate if finger is detected	*/
+
+		if(gen_finger_img() == ERR_OK)
+		{
+			if(gen_char_file(GROW_R303_CHAR_BUF_1) == ERR_OK)
+			{
+				start_page = 1; page_num = 1;
+				if(gen_tmplt_file() == ERR_OK)
+				{
+					if(search_tmplt(GROW_R303_CHAR_BUF_1, &match_id) == ERR_OK)
+					{
+						GPIO_SetBits(GPIOA, OK_LED_PIN);
+						delay_ms(1000);
+						GPIO_ResetBits(GPIOA, OK_LED_PIN);
+					}
+					else {
+						GPIO_SetBits(GPIOA, ERROR_LED_PIN);
+						delay_ms(1000);
+						GPIO_ResetBits(GPIOA, ERROR_LED_PIN);
+					}
+
+				}
+			}
+		}
+
+
+
 		if(GPIO_ReadInputDataBit(GPIOC, USER_BUTTON_PIN) == BUTTON_PRESSED)
 		{
 			current_system_state = STATE_ENROLL_USER;

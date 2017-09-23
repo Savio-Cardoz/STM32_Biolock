@@ -49,6 +49,7 @@
 #define SIZEOF_GEN_CHAR_CMD				13
 #define SIZEOF_GEN_TMPLT_CMD			12
 #define SIZEOF_SAVE_TMPLT_CMD			15
+#define SIZEOF_SEARCH_TMPLT_CMD			17
 
 typedef enum{
 	ERR_OK = 0,
@@ -80,5 +81,6 @@ err_t gen_finger_img();
 err_t gen_char_file(uint8_t char_buffer_num);
 err_t gen_tmplt_file();
 err_t save_tmplt_file(uint8_t char_buffer_num, uint8_t tmplt_id);
+err_t search_tmplt(uint8_t char_buffer_num, uint8_t *tmplt_id);
 
 #endif /* GROW_R303_H_ */
